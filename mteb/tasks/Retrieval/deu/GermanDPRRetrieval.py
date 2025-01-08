@@ -5,6 +5,8 @@ import datasets
 from mteb.abstasks.TaskMetadata import TaskMetadata
 
 from ....abstasks.AbsTaskRetrieval import AbsTaskRetrieval
+import os
+import json
 
 
 class GermanDPR(AbsTaskRetrieval):
@@ -89,5 +91,21 @@ class GermanDPR(AbsTaskRetrieval):
         self.queries = {self._EVAL_SPLIT: queries}
         self.corpus = {self._EVAL_SPLIT: corpus}
         self.relevant_docs = {self._EVAL_SPLIT: relevant_docs}
+
+        # save the dicts to file:
+        output_dir = os.path.join("./output/", "fmplus")
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        with open(os.path.join(output_dir, "queries.json"), "w", encoding="utf-8") as f:
+            json.dump(queries, f, ensure_ascii=False, indent=4)
+
+        with open(os.path.join(output_dir, "corpus.json"), "w", encoding="utf-8") as f:
+            json.dump(corpus, f, ensure_ascii=False, indent=4)
+
+        with open(
+            os.path.join(output_dir, "relevant_docs.json"), "w", encoding="utf-8"
+        ) as f:
+            json.dump(relevant_docs, f, ensure_ascii=False, indent=4)
 
         self.data_loaded = True
