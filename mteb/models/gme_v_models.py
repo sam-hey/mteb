@@ -164,7 +164,7 @@ class GmeQwen2VL(Wrapper):
         )
 
     def encode_queries(self, queries: list[str], **kwargs):
-        embeddings = self.encode(queries, prompt_type=PromptType.query, **kwargs)
+        embeddings = self.encode(queries, prompt_type=PromptType.QUERY, **kwargs)
         return embeddings
 
     def encode_corpus(self, corpus: list[dict[str, str]], **kwargs):
@@ -182,7 +182,7 @@ class GmeQwen2VL(Wrapper):
                 else doc["text"].strip()
                 for doc in corpus
             ]
-        embeddings = self.encode(sentences, prompt_type=PromptType.passage**kwargs)
+        embeddings = self.encode(sentences, prompt_type=PromptType.PASSAGE**kwargs)
         return embeddings
 
     def get_image_embeddings(self, images: list[Image.Image] | DataLoader, **kwargs):
@@ -210,7 +210,7 @@ class GmeQwen2VL(Wrapper):
         instruction=None,
         **kwargs: Any,
     ):
-        if prompt_type == PromptType.passage:
+        if prompt_type == PromptType.PASSAGE:
             instruction = None
         elif instruction is None:
             instruction = self.get_instruction(task_name, prompt_type)

@@ -133,7 +133,7 @@ class Any2AnyDenseRetrievalExactSearch:
             query_embeddings = self.model.get_text_embeddings(
                 texts=query_texts,
                 task_name=task_name,
-                prompt_type=PromptType.query,
+                prompt_type=PromptType.QUERY,
                 **self.encode_kwargs,
             )
         else:
@@ -151,7 +151,7 @@ class Any2AnyDenseRetrievalExactSearch:
                 query_embeddings = self.model.get_image_embeddings(
                     images=query_image_dataloader,
                     task_name=task_name,
-                    prompt_type=PromptType.query,
+                    prompt_type=PromptType.QUERY,
                     **self.encode_kwargs,
                 )
             elif q_modality == "image,text":
@@ -160,7 +160,7 @@ class Any2AnyDenseRetrievalExactSearch:
                     texts=query_texts,
                     images=query_image_dataloader,
                     task_name=task_name,
-                    prompt_type=PromptType.query,
+                    prompt_type=PromptType.QUERY,
                     **self.encode_kwargs,
                 )
             else:
@@ -190,7 +190,7 @@ class Any2AnyDenseRetrievalExactSearch:
                 sub_corpus_embeddings = self.model.get_text_embeddings(
                     texts=corpus_texts,
                     task_name=task_name,
-                    prompt_type=PromptType.passage,
+                    prompt_type=PromptType.PASSAGE,
                     **self.encode_kwargs,
                 )
             else:
@@ -208,7 +208,7 @@ class Any2AnyDenseRetrievalExactSearch:
                     sub_corpus_embeddings = self.model.get_image_embeddings(
                         images=corpus_image_dataloader,
                         task_name=task_name,
-                        prompt_type=PromptType.passage,
+                        prompt_type=PromptType.PASSAGE,
                         **self.encode_kwargs,
                     )
                 elif corpus_modality == "image,text":
@@ -217,7 +217,7 @@ class Any2AnyDenseRetrievalExactSearch:
                         texts=corpus_texts,
                         images=corpus_image_dataloader,
                         task_name=task_name,
-                        prompt_type=PromptType.passage,
+                        prompt_type=PromptType.PASSAGE,
                         **self.encode_kwargs,
                     )
                 else:

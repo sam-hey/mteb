@@ -14,7 +14,7 @@ def instruction_template(
 ) -> str:
     return (
         f"Instruct: {instruction}\nQuery: "
-        if (prompt_type is None or prompt_type == PromptType.query) and instruction
+        if (prompt_type is None or prompt_type == PromptType.QUERY) and instruction
         else ""
     )
 

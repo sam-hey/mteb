@@ -38,8 +38,8 @@ MODEL_PROMPTS = {
     "MultilabelClassification": "CLASSIFICATION",
     "Clustering": "CLUSTERING",
     "STS": "SIMILARITY",
-    PromptType.query.value: "RETRIEVAL_QUERY",
-    PromptType.passage.value: "RETRIEVAL_DOCUMENT",
+    PromptType.QUERY.value: "RETRIEVAL_QUERY",
+    PromptType.PASSAGE.value: "RETRIEVAL_DOCUMENT",
 }
 
 GECKO_TRAINING_DATA = {

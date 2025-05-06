@@ -61,7 +61,7 @@ class NoInstructWrapper(Wrapper):
 
             # The model is optimized to use the mean pooling for queries,
             # while the sentence / document embedding uses the [CLS] representation.
-            if prompt_type == PromptType.query:
+            if prompt_type == PromptType.QUERY:
                 # Mean pooling
                 vectors = outputs.last_hidden_state * attention_mask.unsqueeze(2)
                 pooled_vectors = vectors.sum(dim=1) / attention_mask.sum(

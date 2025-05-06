@@ -120,8 +120,8 @@ def _loader(wrapper: type[RepLLaMAWrapper], **kwargs) -> Callable[..., Encoder]:
 
 
 model_prompts = {
-    PromptType.query.value: "query:  ",
-    PromptType.passage.value: "passage:  ",
+    PromptType.QUERY.value: "query:  ",
+    PromptType.PASSAGE.value: "passage:  ",
 }
 
 repllama_llama2_original = ModelMeta(

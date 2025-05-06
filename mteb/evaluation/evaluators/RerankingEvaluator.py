@@ -87,7 +87,7 @@ class RerankingEvaluator(Evaluator):
                 model.encode(
                     [sample["query"] for sample in self.samples],
                     task_name=self.task_name,
-                    prompt_type=PromptType.query,
+                    prompt_type=PromptType.QUERY,
                     **self.encode_kwargs,
                 )
             )
@@ -100,7 +100,7 @@ class RerankingEvaluator(Evaluator):
                 all_query_flattened,
                 model,
                 task_name=self.task_name,
-                prompt_type=PromptType.query,
+                prompt_type=PromptType.QUERY,
                 **self.encode_kwargs,
             )
         else:
@@ -180,7 +180,7 @@ class RerankingEvaluator(Evaluator):
             all_docs,
             model,
             task_name=self.task_name,
-            prompt_type=PromptType.passage,
+            prompt_type=PromptType.PASSAGE,
             **self.encode_kwargs,
         )
 
@@ -237,7 +237,7 @@ class RerankingEvaluator(Evaluator):
                 model.encode(
                     query,
                     task_name=self.task_name,
-                    prompt_type=PromptType.query,
+                    prompt_type=PromptType.QUERY,
                     **self.encode_kwargs,
                 )
             )
@@ -245,7 +245,7 @@ class RerankingEvaluator(Evaluator):
                 model.encode(
                     docs,
                     task_name=self.task_name,
-                    prompt_type=PromptType.passage,
+                    prompt_type=PromptType.PASSAGE,
                     **self.encode_kwargs,
                 )
             )
@@ -293,7 +293,7 @@ class RerankingEvaluator(Evaluator):
             model.encode(
                 all_docs,
                 task_name=self.task_name,
-                prompt_type=PromptType.passage,
+                prompt_type=PromptType.PASSAGE,
                 **self.encode_kwargs,
             )
         )
@@ -337,7 +337,7 @@ class RerankingEvaluator(Evaluator):
                     model.encode(
                         [query],
                         task_name=self.task_name,
-                        prompt_type=PromptType.query,
+                        prompt_type=PromptType.QUERY,
                         **self.encode_kwargs,
                     )
                 )
@@ -345,7 +345,7 @@ class RerankingEvaluator(Evaluator):
                     model.encode(
                         docs,
                         task_name=self.task_name,
-                        prompt_type=PromptType.passage,
+                        prompt_type=PromptType.PASSAGE,
                         **self.encode_kwargs,
                     )
                 )

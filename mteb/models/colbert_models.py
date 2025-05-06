@@ -99,7 +99,7 @@ class ColBERTWrapper(Wrapper):
         pred = self.model.encode(
             sentences,
             prompt_name=prompt_name,
-            is_query=True if prompt_type == PromptType.query else False,
+            is_query=True if prompt_type == PromptType.QUERY else False,
             **kwargs,
         )
 

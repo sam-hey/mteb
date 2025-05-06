@@ -139,8 +139,8 @@ class VoyageWrapper(Wrapper):
 
 
 model_prompts = {
-    PromptType.query.value: "query",
-    PromptType.passage.value: "document",
+    PromptType.QUERY.value: "query",
+    PromptType.PASSAGE.value: "document",
 }
 
 voyage_large_2_instruct = ModelMeta(

@@ -142,7 +142,7 @@ class InstructSentenceTransformerWrapper(Wrapper):
         instruction = self.get_task_instruction(task_name, prompt_type)
 
         # to passage prompts won't be applied to passages
-        if not self.apply_instruction_to_passages and prompt_type == PromptType.passage:
+        if not self.apply_instruction_to_passages and prompt_type == PromptType.PASSAGE:
             instruction = None
             logger.info(
                 f"No instruction used, because prompt type = {prompt_type.passage}"

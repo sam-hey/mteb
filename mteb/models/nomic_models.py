@@ -56,7 +56,7 @@ class NomicWrapper(SentenceTransformerWrapper):
         # default to search_document if input_type and prompt_name are not provided
         prompt_name = (
             self.get_prompt_name(self.model_prompts, task_name, prompt_type)
-            or PromptType.passage.value
+            or PromptType.PASSAGE.value
         )
         task = mteb.get_task(task_name)
         # normalization not applied to classification
@@ -176,8 +176,8 @@ model_prompts = {
     "Reranking": "classification: ",
     "STS": "classification: ",
     "Summarization": "classification: ",
-    PromptType.query.value: "search_query: ",
-    PromptType.passage.value: "search_document: ",
+    PromptType.QUERY.value: "search_query: ",
+    PromptType.PASSAGE.value: "search_document: ",
 }
 
 nomic_embed_v1_5 = ModelMeta(

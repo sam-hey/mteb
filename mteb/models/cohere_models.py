@@ -210,8 +210,8 @@ model_prompts = {
     "Classification": "classification",
     "MultilabelClassification": "classification",
     "Clustering": "clustering",
-    PromptType.query.value: "search_query",
-    PromptType.passage.value: "search_document",
+    PromptType.QUERY.value: "search_query",
+    PromptType.PASSAGE.value: "search_document",
 }
 
 cohere_mult_3 = ModelMeta(

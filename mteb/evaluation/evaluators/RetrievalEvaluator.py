@@ -123,7 +123,7 @@ class DenseRetrievalExactSearch:
             query_embeddings = self.model.encode(
                 queries,  # type: ignore
                 task_name=task_name,
-                prompt_type=PromptType.query,
+                prompt_type=PromptType.QUERY,
                 **self.encode_kwargs,
             )
 
@@ -159,7 +159,7 @@ class DenseRetrievalExactSearch:
                 sub_corpus_embeddings = self.model.encode(
                     corpus[corpus_start_idx:corpus_end_idx],  # type: ignore
                     task_name=task_name,
-                    prompt_type=PromptType.passage,
+                    prompt_type=PromptType.PASSAGE,
                     request_qid=request_qid,
                     **self.encode_kwargs,
                 )
@@ -351,7 +351,7 @@ class DenseRetrievalExactSearch:
         )
         queries = self.convert_conv_history_to_query(model, conversations)  # type: ignore
         return model.encode(
-            queries, task_name=task_name, prompt_type=PromptType.query, **kwargs
+            queries, task_name=task_name, prompt_type=PromptType.QUERY, **kwargs
         )  # type: ignore
 
     @staticmethod
@@ -385,7 +385,7 @@ class DRESModel:
         corpus: list[dict[str, str]],
         task_name: str,
         batch_size: int,
-        prompt_type: PromptType = PromptType.passage,
+        prompt_type: PromptType = PromptType.PASSAGE,
         request_qid: str | None = None,
         **kwargs,
     ):
@@ -416,7 +416,7 @@ class DRESModel:
         prompt_type: PromptType | None = None,
         **kwargs,
     ):
-        if prompt_type and prompt_type == PromptType.passage:
+        if prompt_type and prompt_type == PromptType.PASSAGE:
             return self.encode_corpus(
                 sentences, task_name, prompt_type=prompt_type, **kwargs
             )
