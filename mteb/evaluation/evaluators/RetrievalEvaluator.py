@@ -4,6 +4,7 @@ import heapq
 import json
 import logging
 import os
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -363,6 +364,26 @@ class DenseRetrievalExactSearch:
         return convert_conv_history_to_query(conversations)  # type: ignore
 
 
+class ModelWithIndex(ABC):
+    """Model with index."""
+
+    @abstractmethod
+    def search_index(
+        self,
+        queries: dict[str, str | list[str]],
+        top_k: int,
+        return_sorted: bool = False,
+        **kwargs,
+    ) -> dict[str, dict[str, float]]:
+        """Search the index."""
+        pass
+
+    @abstractmethod
+    def build_index(self, corpus: dict[str, dict[str, str]], **kwargs):
+        """Build the index."""
+        pass
+
+
 class DRESModel:
     """Dense Retrieval Exact Search (DRES).
     This class converts a model with just an .encode method into DRES format.
@@ -470,16 +491,18 @@ class RetrievalEvaluator(Evaluator):
 
         if self.is_cross_encoder:
             return self.retriever.search_cross_encoder(corpus, queries, self.top_k)
-        elif (
-            hasattr(self.retriever.model.model, "mteb_model_meta")
-            and self.retriever.model.model.mteb_model_meta.name == "bm25s"
-        ):
-            return self.retriever.model.model.search(
+        elif isinstance(self.retriever.model.model, ModelWithIndex):
+            self.retriever.model.model.build_index(
                 corpus,
-                queries,
-                self.top_k,
-                score_function="bm25",
+                task_name=self.task_name,
+                encode_kwargs=self.retriever.encode_kwargs,
+            )
+
+            return self.retriever.model.model.search_index(
+                queries=queries,
+                top_k=self.top_k,
                 task_name=self.task_name,  # type: ignore
+                encode_kwargs=self.retriever.encode_kwargs,
             )
         else:
             return self.retriever.search(

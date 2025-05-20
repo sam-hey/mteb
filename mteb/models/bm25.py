@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from functools import partial
 
-from mteb.evaluation.evaluators.RetrievalEvaluator import DRESModel
+from mteb.evaluation.evaluators.RetrievalEvaluator import ModelWithIndex
 from mteb.model_meta import ModelMeta
 from mteb.models.wrapper import Wrapper
 from mteb.requires_package import requires_package
@@ -17,7 +17,7 @@ def bm25_loader(**kwargs):
     import bm25s
     import Stemmer
 
-    class BM25Search(DRESModel, Wrapper):
+    class BM25Search(Wrapper, ModelWithIndex):
         """BM25 search"""
 
         def __init__(
@@ -27,14 +27,6 @@ def bm25_loader(**kwargs):
             stemmer_language: str | None = "english",
             **kwargs,
         ):
-            super().__init__(
-                model=None,
-                batch_size=1,
-                corpus_chunk_size=1,
-                previous_results=previous_results,
-                **kwargs,
-            )
-
             self.stopwords = stopwords
             self.stemmer = (
                 Stemmer.Stemmer(stemmer_language) if stemmer_language else None
@@ -44,18 +36,10 @@ def bm25_loader(**kwargs):
         def name(self):
             return "bm25s"
 
-        def search(
-            self,
-            corpus: dict[str, dict[str, str]],
-            queries: dict[str, str | list[str]],
-            top_k: int,
-            score_function: str,
-            return_sorted: bool = False,
-            **kwargs,
-        ) -> dict[str, dict[str, float]]:
+        def build_index(self, corpus: dict[str, dict[str, str]], **kwargs):
             logger.info("Encoding Corpus...")
             corpus_ids = list(corpus.keys())
-            corpus_with_ids = [
+            self.corpus_with_ids = [
                 {
                     "doc_id": cid,
                     **(
@@ -69,7 +53,7 @@ def bm25_loader(**kwargs):
 
             corpus_texts = [
                 "\n".join([doc.get("title", ""), doc["text"]])
-                for doc in corpus_with_ids
+                for doc in self.corpus_with_ids
             ]  # concatenate all document values (title, text, ...)
             encoded_corpus = self.encode(corpus_texts)
 
@@ -80,7 +64,19 @@ def bm25_loader(**kwargs):
             # Create the BM25 model and index the corpus
             retriever = bm25s.BM25()
             retriever.index(encoded_corpus)
+            self.retriever = retriever
 
+        def search_index(
+            self,
+            queries: dict[str, str | list[str]],
+            top_k: int,
+            return_sorted: bool = False,
+            **kwargs,
+        ) -> dict[str, dict[str, float]]:
+            if return_sorted:
+                raise ValueError(
+                    "BM25 does not support return_sorted=True. Please set it to False."
+                )
             logger.info("Encoding Queries...")
             query_ids = list(queries.keys())
             self.results = {qid: {} for qid in query_ids}
@@ -90,8 +86,8 @@ def bm25_loader(**kwargs):
 
             logger.info(f"Retrieving Results... {len(queries):,} queries")
 
-            queries_results, queries_scores = retriever.retrieve(
-                query_token_strs, corpus=corpus_with_ids, k=top_k
+            queries_results, queries_scores = self.retriever.retrieve(
+                query_token_strs, corpus=self.corpus_with_ids, k=top_k
             )
 
             # Iterate over queries
