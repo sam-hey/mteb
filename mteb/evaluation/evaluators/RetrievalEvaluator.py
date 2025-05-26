@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import heapq
 import json
 import logging
 import os
@@ -10,18 +9,17 @@ from typing import Any
 
 import numpy as np
 import pytrec_eval
-import torch
 import tqdm
 from sentence_transformers import CrossEncoder, SentenceTransformer
 
 from mteb.encoder_interface import Encoder, PromptType
+from mteb.evaluation.evaluators.search_utils import SearchUtils
 from mteb.model_meta import ModelMeta
 
 from .Evaluator import Evaluator
 from .utils import (
     confidence_scores,
     convert_conv_history_to_query,
-    cos_sim,
     download,
     hole,
     mrr,
@@ -56,7 +54,7 @@ def corpus_to_str(
 
 
 # Adapted from https://github.com/beir-cellar/beir/blob/f062f038c4bfd19a8ca942a9910b1e0d218759d4/beir/retrieval/search/dense/exact_search.py#L12
-class DenseRetrievalExactSearch:
+class DenseRetrievalExactSearch(SearchUtils):
     def __init__(
         self,
         model: Encoder,
@@ -108,135 +106,57 @@ class DenseRetrievalExactSearch:
     ) -> dict[str, dict[str, float]]:
         logger.info("Encoding Queries.")
 
-        if hasattr(self.model.model, "create_index"):
-            # create the index for the model
-            self.model.model.create_index()
-            logger.info("Index created for the model.")
+        self._maybe_create_index()
 
         query_ids = list(queries.keys())
         self.results = {qid: {} for qid in query_ids}
-        queries = [queries[qid] for qid in queries]  # type: ignore
-        if instructions:
-            queries = [f"{query} {instructions[query]}".strip() for query in queries]
-        if isinstance(queries[0], list):  # type: ignore
-            query_embeddings = self.encode_conversations(
-                model=self.model,
-                conversations=queries,  # type: ignore
-                task_name=task_name,
-                **self.encode_kwargs,
-            )
-        else:
-            query_embeddings = self.model.encode(
-                queries,  # type: ignore
-                task_name=task_name,
-                prompt_type=PromptType.query,
-                **self.encode_kwargs,
-            )
 
-        logger.info("Sorting Corpus by document length (Longest first)...")
-        corpus_ids = sorted(
-            corpus,
-            reverse=True,
-        )
-        corpus = [corpus[cid] for cid in corpus_ids]  # type: ignore
+        queries = self._prepare_queries(queries, instructions)
+        query_embeddings = self._encode_queries(queries, task_name)
 
-        logger.info("Encoding Corpus in batches... Warning: This might take a while!")
+        corpus_ids, corpus_list = self._prepare_corpus(corpus)
 
-        itr = range(0, len(corpus), self.corpus_chunk_size)
-
-        result_heaps = {
-            qid: [] for qid in query_ids
-        }  # Keep only the top-k docs for each query
-        for batch_num, corpus_start_idx in enumerate(itr):
-            logger.info(f"Encoding Batch {batch_num + 1}/{len(itr)}...")
-            corpus_end_idx = min(corpus_start_idx + self.corpus_chunk_size, len(corpus))
-
-            # Encode chunk of corpus
-            if (
-                self.save_corpus_embeddings
-                and request_qid
-                and len(self.corpus_embeddings[request_qid])
-            ):
-                sub_corpus_embeddings = torch.tensor(
-                    self.corpus_embeddings[request_qid][batch_num]
-                )
-            else:
-                # Encode chunk of corpus
-                sub_corpus_embeddings = self.model.encode(
-                    corpus[corpus_start_idx:corpus_end_idx],  # type: ignore
-                    task_name=task_name,
-                    prompt_type=PromptType.passage,
-                    request_qid=request_qid,
-                    **self.encode_kwargs,
-                )
-                if self.save_corpus_embeddings and request_qid:
-                    self.corpus_embeddings[request_qid].append(sub_corpus_embeddings)
-
-            if hasattr(self.model.model, "add_to_index"):
-                corpus_ids_slice = corpus_ids[corpus_start_idx:corpus_end_idx]
-                self.model.model.add_to_index(sub_corpus_embeddings, corpus_ids_slice)
-                continue
-
-            # Compute similarites using self defined similarity otherwise default to cosine-similarity
-            if hasattr(self.model, "similarity"):
-                similarity_scores = self.model.similarity(
-                    query_embeddings, sub_corpus_embeddings
-                )
-            else:
-                similarity_scores = cos_sim(query_embeddings, sub_corpus_embeddings)
-            is_nan = torch.isnan(similarity_scores)
-            if is_nan.sum() > 0:
-                logger.warning(
-                    f"Found {is_nan.sum()} NaN values in the similarity scores. Replacing NaN values with -1."
-                )
-            similarity_scores[is_nan] = -1
-
-            # Get top-k values
-            similarity_scores_top_k_values, similarity_scores_top_k_idx = torch.topk(
-                similarity_scores,
-                min(
-                    top_k + 1,
-                    len(similarity_scores[1])
-                    if len(similarity_scores) > 1
-                    else len(similarity_scores[-1]),
-                ),
-                dim=1,
-                largest=True,
-                sorted=return_sorted,
-            )
-            similarity_scores_top_k_values = (
-                similarity_scores_top_k_values.cpu().tolist()
-            )
-            similarity_scores_top_k_idx = similarity_scores_top_k_idx.cpu().tolist()
-
-            for query_itr in range(len(query_embeddings)):
-                query_id = query_ids[query_itr]
-                for sub_corpus_id, score in zip(
-                    similarity_scores_top_k_idx[query_itr],
-                    similarity_scores_top_k_values[query_itr],
-                ):
-                    corpus_id = corpus_ids[corpus_start_idx + sub_corpus_id]
-                    if len(result_heaps[query_id]) < top_k:
-                        # Push item on the heap
-                        heapq.heappush(result_heaps[query_id], (score, corpus_id))
-                    else:
-                        # If item is larger than the smallest in the heap, push it on the heap then pop the smallest element
-                        heapq.heappushpop(result_heaps[query_id], (score, corpus_id))
-
-        if hasattr(self.model.model, "add_to_index") and hasattr(
-            self.model.model, "retrieve_from_index"
+        result_heaps = {qid: [] for qid in query_ids}
+        for batch_num, corpus_start_idx in enumerate(
+            range(0, len(corpus_list), self.corpus_chunk_size)
         ):
-            results = self.model.model.retrieve_from_index(query_embeddings, top_k)
+            corpus_end_idx = min(
+                corpus_start_idx + self.corpus_chunk_size, len(corpus_list)
+            )
+            logger.info(
+                f"Encoding Batch {batch_num + 1}/{(len(corpus_list) + self.corpus_chunk_size - 1) // self.corpus_chunk_size}..."
+            )
 
-            # Build result_heaps from results
-            result_heaps = {
-                query_ids[i]: [(item["score"], item["id"]) for item in results[i]]
-                for i in range(len(query_embeddings))
-            }
+            sub_corpus_embeddings = self._get_corpus_embeddings(
+                corpus_list,
+                corpus_ids,
+                corpus_start_idx,
+                corpus_end_idx,
+                task_name,
+                request_qid,
+                batch_num,
+            )
 
-        for qid in result_heaps:
-            for score, corpus_id in result_heaps[qid]:
-                self.results[qid][corpus_id] = score
+            if self._maybe_add_to_index(
+                sub_corpus_embeddings, corpus_ids[corpus_start_idx:corpus_end_idx]
+            ):
+                continue  # Skip heap logic if using index
+
+            result_heaps = self._update_results_heap(
+                query_embeddings,
+                sub_corpus_embeddings,
+                result_heaps,
+                query_ids,
+                corpus_ids,
+                corpus_start_idx,
+                top_k,
+                return_sorted,
+            )
+
+        if self._should_retrieve_from_index():
+            result_heaps = self._retrieve_from_index(query_embeddings, query_ids, top_k)
+
+        self._finalize_results(result_heaps)
 
         return self.results
 
